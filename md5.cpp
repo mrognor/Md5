@@ -214,6 +214,7 @@ void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0
     D0 += D; 
 }
 
+// Calculate string hash
 std::string CalculateHash_MD5(std::string str)
 {
     // A – 01 23 45 67 in little endian order: 67452301
