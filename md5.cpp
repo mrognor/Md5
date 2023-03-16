@@ -3,6 +3,34 @@
 #include <bitset>
 #include <math.h>
 
+// Array with right shifts data for all 4 rounds by 16 steps
+const int S[64] = {
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+};
+
+// Array with const 2^32 × abs (sin(i + 1))
+const std::uint32_t K[64] = { 
+    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+    0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+    0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+    0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+    0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+    0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
+    0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+    0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+    0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 
+};
+
 inline std::uint32_t F(const std::uint32_t x, const std::uint32_t y, const std::uint32_t z)
 {
     return x & y | ~x & z;
@@ -23,6 +51,7 @@ inline std::uint32_t I(const std::uint32_t x, const std::uint32_t y, const std::
     return y ^ (x | ~z);
 }
 
+// Convert uint32 to string with hex form of this number
 std::string Uint32ToHexForm(std::uint32_t a)
 {
     std::string res;
@@ -63,11 +92,13 @@ std::string Uint32ToHexForm(std::uint32_t a)
     return res;
 }
 
+// This function makes right padding to source string.
+// Its make string length equal 512 bits(64 chars) * N(unsigned int)
 inline void StringPadding_MD5(std::string& str)
 {
     // String length in bytes
     std::uint64_t stringLength = str.length() * 8;
-    std::cout << "String length: " << stringLength << std::endl;
+
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
     str += (char)128;
 
@@ -76,8 +107,10 @@ inline void StringPadding_MD5(std::string& str)
     while (str.length() % 64 != 56)
         str += '\0';
     
+    // String with source string size
     std::string stringAddition;
 
+    // Pushing symbols to string. Equals 256 based count system
     while (stringLength / 256 > 0)
     {
         stringAddition += (char)(stringLength % 256);
@@ -86,6 +119,9 @@ inline void StringPadding_MD5(std::string& str)
 
     stringAddition += (char)(stringLength % 256);  
     
+    // Adding string addition chars to source string in right order
+    // At first we add 4 last bytes(chars). After that we add 4 first bytes(chars).
+    // Also this function change bytes position to next function CalculateHastStep_MD5
     for (int i = (stringAddition.length() - 1); i != -1; i--)
         str += stringAddition[stringAddition.length() - 1 - i];
 
@@ -93,9 +129,10 @@ inline void StringPadding_MD5(std::string& str)
         str += '\0'; 
 }
 
+// Calculate hash to 512 bits(64 chars) and change initial numbers
 void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0, std::uint32_t& C0, std::uint32_t& D0)
 {
-    // Convert every 4 chars to 32 bit int 
+    // Convert every 4 chars to 32 bit int and save it into little endian
     std::uint32_t M[16];
     for (int i = str.length() - 1; i > -1; i -= 4)
     {
@@ -106,54 +143,11 @@ void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0
         M[i/4] |= (unsigned char)str[i - 3];
     }
 
-    // Otladka
-    for (int i = 0; i < 16; i++)
-    {
-        std::cout << "M" << std::to_string(i) << " ";
-        std::cout << std::bitset<32>(M[i]).to_string() << " ";
-        std::cout << std::endl;
-    }
-    // End otladka
-
+    // Save init uints values
     std::uint32_t A = A0;
     std::uint32_t B = B0;
     std::uint32_t C = C0;
     std::uint32_t D = D0;
-    
-    // Array with right shifts data for all 4 rounds by 16 steps
-    int S[64] = {
-        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-        5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
-        4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-        6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
-    };
-
-    // Array with const 2^32 × abs (sin(i + 1))
-    std::uint32_t K[64] = { 
-        0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
-        0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
-        0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
-        0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-        0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
-        0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
-        0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
-        0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-        0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
-        0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
-        0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
-        0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-        0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
-        0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
-        0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
-        0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 
-    };
-
-    std::cout << "Before loop: ";
-    std::cout << A << " ";
-    std::cout << B << " ";
-    std::cout << C << " ";
-    std::cout << D << " ";
-    std::cout << std::endl;
 
     for (int i = 0; i < 64; i++)
     {       
@@ -281,32 +275,12 @@ void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0
             newVal = newVal + B + K[i] + M[g];
             B = C + ((newVal << S[i]) | (newVal >> ((sizeof(std::uint32_t) * 8) - S[i])));
         }
-         
-        std::cout << "Loop val " << std::to_string(i) << ": ";
-        std::cout << A << " ";
-        std::cout << B << " ";
-        std::cout << C << " ";
-        std::cout << D << " ";
-        std::cout << std::endl;
     }
 
-    std::cout << "After loop: ";
-    std::cout << A << " ";
-    std::cout << B << " ";
-    std::cout << C << " ";
-    std::cout << D << " ";
-    std::cout << std::endl;
     A0 += A;
     B0 += B;
     C0 += C;
     D0 += D; 
-
-    std::cout << "Summ: ";
-    std::cout << "A: " << A0 << " ";
-    std::cout << "B: " << B0 << " ";
-    std::cout << "C: " << C0 << " ";
-    std::cout << "D: " << D0 << " ";
-    std::cout << std::endl;
 }
 
 std::string CalculateHash_MD5(std::string str)
@@ -320,22 +294,18 @@ std::string CalculateHash_MD5(std::string str)
     // D – 76 54 32 10 in little endian order: 10325476
     std::uint32_t D0 = 0x10325476;
 
+    // Padding source string
     StringPadding_MD5(str);
+    // Split source string to 512 bits(64 chars) chunks and process all of them
     for (int i = 0; i < str.length(); i += 64)
         CalculateHashStep_MD5(str.substr(i, 64), A0, B0, C0, D0);
     
-
+    // Return changed initial uints converted to string with hex form
     return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
 }
 
 int main()
 {
-    // std::string a = "They are deterministicaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>?";
     std::cout << CalculateHash_MD5(a) << std::endl;
-
-    // std::cout << std::endl;
-
-    // std::string b = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    // CalculateHashStep_MD5(b);
 }
