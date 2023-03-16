@@ -237,33 +237,38 @@ std::string CalculateHash_MD5(std::string str)
 
 std::string Uint64ToString(std::uint64_t t)
 {
-    std::string res;
+    std::string res = "";
     while (t / 256 != 0)
     {
-        res += t % 256;
+        res = std::string(1, t % 256) + res;
         t /= 256;
     }
 
-    res += t % 256;
+    res = std::string(1, t % 256) + res;
     return res;
 }
 
 int main()
 {
-    std::string input = "9cdfb439c7876e703e307864c9167a15";
+    std::string input = "5b261df9776ed20f38369b0a38056c9d";
 
     // i - amount of symbol combinations
     for (std::uint64_t i = 0; i < 1000000000000; i++)
     {
         std::string str = Uint64ToString(i);
-        // for (auto it : str`)
-        //     std::cout << (int)(unsigned char)it << std::endl;
 
-        // std::cout << std::endl;
         if (CalculateHash_MD5(str) == input)
         {
             std::cout << "Your string: " << str << std::endl;
             return 1;
+        }
+
+        if (i % 1000000 == 0)
+        {
+            std::cout << str << std::endl;
+            for (auto it : str)
+                std::cout << (int)(unsigned char)it << std::endl;
+            std::cout << std::endl;
         }
     }
     std::cout << "Not found" << std::endl;
