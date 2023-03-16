@@ -154,129 +154,60 @@ void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0
         // New value
         std::uint32_t newVal;
         int g;
-        char funcName = -1;
+        std::uint32_t (*func)(const std::uint32_t, const std::uint32_t, const std::uint32_t);
 
         // Calculate F(B, C, D) = (B and C) or (not B and D)
         if (i < 16)
         {
-            funcName = 'F'; 
+            func = F; 
             g = i;
         }
 
         // Calculate G(B, C, D) = (B and D) or (C and not D)
         if (i >= 16 && i < 32)
         {
-            funcName = 'G'; 
+            func = G;
             g = (5 * i + 1) % 16;
         }
 
         // H(B, C, D) = B xor C xor D
         if (i >= 32 && i < 48)
         {
-            funcName = 'H'; 
+            func = H;
             g = (3 * i + 5) % 16;
         }
 
         // I(B, C, D) = C xor (B or not D)
         if (i >= 48) 
         {
-            funcName = 'I'; 
+            func = I;
             g = (7 * i) % 16;
         }
 
         switch(i % 4)
         {
         case 0:
-            switch(funcName)
-            {
-            case 'F':
-                newVal = F(B, C, D);
-                break;
-            case 'G':
-                newVal = G(B, C, D);
-                break;
-            case 'H':
-                newVal = H(B, C, D);
-                break;
-            case 'I':
-                newVal = I(B, C, D);
-                break;
-            }
-
-            //std::cout << "Shift const: " << S[i] << std::endl;
-            //std::cout << "Input const: " << M[g] << std::endl;
-            //std::cout << "Sin const: " << K[i] << std::endl;
-            //std::cout << "F: " << newVal << std::endl;
-            //std::cout << "Summ: " << newVal + A + K[i] + M[g] << std::endl;
-            newVal = newVal + A + K[i] + M[g];
-            //std::cout << "Shift: " << ((newVal << S[i]) | (newVal >> (32 - S[i]))) << std::endl;
+            newVal = func(B, C, D) + A + K[i] + M[g];
             A = B + ((newVal << S[i]) | (newVal >> (32 - S[i])));
-            //std::cout << "final A: " << B + ((newVal << S[i]) | (newVal >> (32 - S[i]))) << " " << A << std::endl;
             break;
 
         case 1:
-            switch(funcName)
-            {
-            case 'F':
-                newVal = F(A, B, C);
-                break;
-            case 'G':
-                newVal = G(A, B, C);
-                break;
-            case 'H':
-                newVal = H(A, B, C);
-                break;
-            case 'I':
-                newVal = I(A, B, C);
-                break;
-            }
-
-            newVal = newVal + D + K[i] + M[g];
+            newVal = func(A, B, C) + D + K[i] + M[g];
             D = A + ((newVal << S[i]) | (newVal >> ((sizeof(std::uint32_t) * 8) - S[i])));
             break;
 
         case 2:
-            switch(funcName)
-            {
-            case 'F':
-                newVal = F(D, A, B);
-                break;
-            case 'G':
-                newVal = G(D, A, B);
-                break;
-            case 'H':
-                newVal = H(D, A, B);
-                break;
-            case 'I':
-                newVal = I(D, A, B);
-                break;
-            }
-
-            newVal = newVal + C + K[i] + M[g];
+            newVal = func(D, A, B) + C + K[i] + M[g];
             C = D + ((newVal << S[i]) | (newVal >> ((sizeof(std::uint32_t) * 8) - S[i])));
             break;
         case 3:
-            switch(funcName)
-            {
-            case 'F':
-                newVal = F(C, D, A);
-                break;
-            case 'G':
-                newVal = G(C, D, A);
-                break;
-            case 'H':
-                newVal = H(C, D, A);
-                break;
-            case 'I':
-                newVal = I(C, D, A);
-                break;
-            }
-
-            newVal = newVal + B + K[i] + M[g];
+            newVal = func(C, D, A) + B + K[i] + M[g];
             B = C + ((newVal << S[i]) | (newVal >> ((sizeof(std::uint32_t) * 8) - S[i])));
+            break;
         }
     }
 
+    // Update initial variables
     A0 += A;
     B0 += B;
     C0 += C;
@@ -306,6 +237,6 @@ std::string CalculateHash_MD5(std::string str)
 
 int main()
 {
-    std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>?";
+    std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
 }
