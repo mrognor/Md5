@@ -65,26 +65,12 @@ std::string Uint32ToHexForm(std::uint32_t a)
         a /= 16;
 
         if (highByte > 9)
-        {
-            if (highByte == 10) res += "a";
-            if (highByte == 11) res += "b";
-            if (highByte == 12) res += "c";
-            if (highByte == 13) res += "d";
-            if (highByte == 14) res += "e";
-            if (highByte == 15) res += "f";
-        }
+            res += 'a' + highByte - 10;
         else
             res += std::to_string(highByte);
 
         if (lowByte > 9)
-        {
-            if (lowByte == 10) res += "a";
-            if (lowByte == 11) res += "b";
-            if (lowByte == 12) res += "c";
-            if (lowByte == 13) res += "d";
-            if (lowByte == 14) res += "e";
-            if (lowByte == 15) res += "f";
-        }
+            res += 'a' + lowByte - 10;
         else
             res += std::to_string(lowByte);
     }
@@ -238,6 +224,9 @@ std::string CalculateHash_MD5(std::string str)
 
 int main()
 {
+    // To-Do
+    // 1. Make calculation for files
+    
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
 }

@@ -65,26 +65,12 @@ std::string Uint32ToHexForm(std::uint32_t a)
         a /= 16;
 
         if (highByte > 9)
-        {
-            if (highByte == 10) res += "a";
-            if (highByte == 11) res += "b";
-            if (highByte == 12) res += "c";
-            if (highByte == 13) res += "d";
-            if (highByte == 14) res += "e";
-            if (highByte == 15) res += "f";
-        }
+            res += 'a' + highByte - 10;
         else
             res += std::to_string(highByte);
 
         if (lowByte > 9)
-        {
-            if (lowByte == 10) res += "a";
-            if (lowByte == 11) res += "b";
-            if (lowByte == 12) res += "c";
-            if (lowByte == 13) res += "d";
-            if (lowByte == 14) res += "e";
-            if (lowByte == 15) res += "f";
-        }
+            res += 'a' + lowByte - 10;
         else
             res += std::to_string(lowByte);
     }
@@ -250,7 +236,7 @@ std::string Uint64ToString(std::uint64_t t)
 
 int main()
 {
-    std::string input = "5b261df9776ed20f38369b0a38056c9d";
+    std::string input = "b76dd29d5f8501a9219a4a122d667b7a";
 
     // i - amount of symbol combinations
     for (std::uint64_t i = 0; i < 1000000000000; i++)
