@@ -1,7 +1,6 @@
 #include <string>
 #include <iostream>
-#include <bitset>
-#include <math.h>
+#include <fstream>
 
 // Array with right shifts data for all 4 rounds by 16 steps
 const int S[64] = {
@@ -80,10 +79,16 @@ std::string Uint32ToHexForm(std::uint32_t a)
 
 // This function makes right padding to source string.
 // Its make string length equal 512 bits(64 chars) * N(unsigned int)
-inline void StringPadding_MD5(std::string& str)
+// fileSize using when calculating file hash
+inline void DataPadding_MD5(std::string& str, uint64_t fileSize = 0)
 {
     // String length in bytes
-    std::uint64_t stringLength = str.length() * 8;
+    std::uint64_t stringLength;
+
+    if (fileSize == 0)
+        stringLength = str.length() * 8;
+    else 
+        stringLength = fileSize * 8;
 
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
     str += (char)128;
@@ -140,7 +145,7 @@ void CalculateHashStep_MD5(std::string str, std::uint32_t& A0, std::uint32_t& B0
         // New value
         std::uint32_t newVal;
         int g;
-        std::uint32_t (*func)(const std::uint32_t, const std::uint32_t, const std::uint32_t);
+        std::uint32_t (*func)(const std::uint32_t, const std::uint32_t, const std::uint32_t) = F;
 
         // Calculate F(B, C, D) = (B and C) or (not B and D)
         if (i < 16)
@@ -213,7 +218,7 @@ std::string CalculateHash_MD5(std::string str)
     std::uint32_t D0 = 0x10325476;
 
     // Padding source string
-    StringPadding_MD5(str);
+    DataPadding_MD5(str);
     // Split source string to 512 bits(64 chars) chunks and process all of them
     for (int i = 0; i < str.length(); i += 64)
         CalculateHashStep_MD5(str.substr(i, 64), A0, B0, C0, D0);
@@ -222,11 +227,56 @@ std::string CalculateHash_MD5(std::string str)
     return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
 }
 
+// Calculate file hash. File size should be less then 18446744073709551615 bytes()
+std::string CalculateFileHash_MD5(std::string fileName)
+{
+    // A – 01 23 45 67 in little endian order: 67452301
+    std::uint32_t A0 = 0x67452301;
+    // B - 89 AB CD EF in little endian order: EFCDAB89
+    std::uint32_t B0 = 0xefcdab89;
+    // C – FE DC BA 98 in little endian order: 98BADCFE
+    std::uint32_t C0 = 0x98badcfe;
+    // D – 76 54 32 10 in little endian order: 10325476
+    std::uint32_t D0 = 0x10325476;
+    
+    // Open file
+    std::ifstream f(fileName, std::ios_base::binary | std::ios_base::ate);
+    if (!f.is_open()) {std::cerr << "Can not open file: " << fileName << std::endl; return "";}
+
+    // Save file size
+    uint64_t fileSize = f.tellg();
+    f.seekg(0);
+
+    // Variables to store data chunks
+    char dataChunk[64];
+    std::string data;
+
+    for (uint64_t i = 0; i < fileSize / 64; i++)
+    {
+        f.read(dataChunk, 64);
+        data = std::string(dataChunk, 64);
+        CalculateHashStep_MD5(data, A0, B0, C0, D0);
+    }
+
+    // Read last bytes in file
+    f.read(dataChunk, fileSize % 64);
+    data = std::string(dataChunk, fileSize % 64);
+
+
+    DataPadding_MD5(data, fileSize);
+
+    CalculateHashStep_MD5(data.substr(0, 64), A0, B0, C0, D0);
+
+    if (data.length() > 64)
+        CalculateHashStep_MD5(data.substr(64), A0, B0, C0, D0);
+
+    return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
+}
+
 int main()
 {
-    // To-Do
-    // 1. Make calculation for files
-    
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
+
+    std::cout << CalculateFileHash_MD5("hack_md5.cpp") << std::endl;
 }
