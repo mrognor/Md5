@@ -87,7 +87,9 @@ std::string Uint32ToHexForm(std::uint32_t a)
 // fileSize using when calculating file hash
 // Return string with 64 chars or 128 chars. Depends on last chunks in source data
 // Store last bytes from source data and append padding
-inline std::string DataPadding_MD5(const char* data, std::size_t dataLen)
+// arrayLen is length of data array
+// dataLen is length of all data
+inline std::string DataPadding_MD5(const char* data, std::size_t arrayLen, std::size_t dataLen)
 {
     // String length in bytes
     std::uint64_t stringLength;
@@ -96,9 +98,11 @@ inline std::string DataPadding_MD5(const char* data, std::size_t dataLen)
     // stringLength = dataLen * 8;
     stringLength = dataLen * 8;
 
-    // Move data pointer to last position which multiple 64 and assign it to padding
-    // Save to padding dataLen % 64 bytes
-    padding.assign(data + (dataLen & 0b11000000), dataLen & 0b00111111);
+    // for (int i = 0; i < arrayLen; ++i)
+    //     std::cout << data[i];
+    // std::cout << std::endl;
+
+    padding.assign(data, arrayLen);
 
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
     padding += (char)128;
@@ -128,7 +132,7 @@ inline std::string DataPadding_MD5(const char* data, std::size_t dataLen)
 
     for (int i = 0; i < 8 - stringAddition.length(); i++)
         padding += '\0'; 
-    
+
     return padding;
 }
 
@@ -232,9 +236,15 @@ std::string CalculateHash_MD5(const std::string& str)
     // Split source string to 512 bits(64 chars) chunks and process all of them
     for (uint64_t i = 0; i < str.length() / 64; ++i)
         CalculateHashStep_MD5(str.c_str(), i * 64, A0, B0, C0, D0);
-        
+
+    // std::cout << Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0) << std::endl;
+
     // Padding source string
-    std::string padding = DataPadding_MD5(str.c_str(), str.length());
+    std::string padding = DataPadding_MD5(str.c_str() + ((str.length() >> 6) << 6), (str.length() & 0b00111111), str.length());
+
+    // for (auto it : padding)
+    //     std::cout << (int)(unsigned char)it << " ";
+    // std::cout << std::endl;
 
     CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
@@ -292,8 +302,17 @@ std::string CalculateFileHash_MD5(const std::string& fileName)
     // Read last bytes from input file
     file.read(fileDataChunk, counter);
 
+    // Calculate hash for last bytes
+    for (uint64_t i = 0; i < counter / 64; ++i)
+        CalculateHashStep_MD5(fileDataChunk, i * 64, A0, B0, C0, D0);
+
     // Padding source file
-    std::string padding = DataPadding_MD5(fileDataChunk, fileSize);
+    // Move fileDataChunk ptr to last position multiply by 64
+    std::string padding = DataPadding_MD5(fileDataChunk + ((counter >> 6) << 6), counter % 64, fileSize);
+
+    // for (auto it : padding)
+    //     std::cout << (int)(unsigned char)it << " ";
+    // std::cout << std::endl;
 
     CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
@@ -309,5 +328,5 @@ int main()
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
 
-    std::cout <<  CalculateFileHash_MD5("testfile") << std::endl;
+    std::cout <<  CalculateFileHash_MD5("Md5.cpp") << std::endl;
 }
