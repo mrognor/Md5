@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <iostream>
 
+// Define the block size for working with files
+// Must be multiple 64
+#define CHUNK_SIZE 4096
+
 // Array with right shifts data for all 4 rounds by 16 steps
 const int S[64] = {
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
@@ -83,20 +87,19 @@ std::string Uint32ToHexForm(std::uint32_t a)
 // fileSize using when calculating file hash
 // Return string with 64 chars or 128 chars. Depends on last chunks in source data
 // Store last bytes from source data and append padding
-inline std::string DataPadding_MD5(const std::string& str, uint64_t fileSize = 0)
+inline std::string DataPadding_MD5(const char* data, std::size_t dataLen)
 {
     // String length in bytes
     std::uint64_t stringLength;
     std::string padding;
 
-    if (fileSize == 0)
-    {
-        stringLength = str.length() * 8;
-        padding = str.substr((str.length() >> 6) << 6);
-    }
-    else
-        stringLength = fileSize * 8;
-    
+    // stringLength = dataLen * 8;
+    stringLength = dataLen * 8;
+
+    // Move data pointer to last position which multiple 64 and assign it to padding
+    // Save to padding dataLen % 64 bytes
+    padding.assign(data + (dataLen & 0b11000000), dataLen & 0b00111111);
+
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
     padding += (char)128;
 
@@ -231,7 +234,66 @@ std::string CalculateHash_MD5(const std::string& str)
         CalculateHashStep_MD5(str.c_str(), i * 64, A0, B0, C0, D0);
         
     // Padding source string
-    std::string padding = DataPadding_MD5(str);
+    std::string padding = DataPadding_MD5(str.c_str(), str.length());
+
+    CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
+
+    if (padding.length() > 64)
+        CalculateHashStep_MD5(padding.c_str(), 64, A0, B0, C0, D0);
+
+    // Return changed initial uints converted to string with hex form
+    return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
+}
+
+// Calculate file hash. File size should be less then 18446744073709551615 bytes
+// Return empty string if failed to open file
+std::string CalculateFileHash_MD5(const std::string& fileName)
+{
+    // A – 01 23 45 67 in little endian order: 67452301
+    std::uint32_t A0 = 0x67452301;
+    // B - 89 AB CD EF in little endian order: EFCDAB89
+    std::uint32_t B0 = 0xefcdab89;
+    // C – FE DC BA 98 in little endian order: 98BADCFE
+    std::uint32_t C0 = 0x98badcfe;
+    // D – 76 54 32 10 in little endian order: 10325476
+    std::uint32_t D0 = 0x10325476;
+    
+    // Open file
+    std::ifstream file(fileName, std::ios_base::binary | std::ios_base::ate);
+    if (!file.is_open()) {std::cerr << "Can not open file: " << fileName << std::endl; return "";}
+
+    // Save file size
+    uint64_t fileSize = file.tellg();
+    file.seekg(0);
+
+    // Arrays to read 4kb from file and to save 4 kb to file
+    char fileDataChunk[CHUNK_SIZE];
+
+    // Counter for file reading
+    std::size_t counter = 0;
+
+    // Checking whether the file is larger than the size of the file processing chunks
+    if (fileSize > CHUNK_SIZE)
+    {
+        // Processing the part of the file that is a multiple of the chunk size
+        for(; counter < fileSize - CHUNK_SIZE; counter += CHUNK_SIZE)
+        {
+            // Read chunk from input file
+            file.read(fileDataChunk, CHUNK_SIZE);
+
+            for (std::size_t i = 0; i < CHUNK_SIZE; i += 64)
+                CalculateHashStep_MD5(fileDataChunk, i, A0, B0, C0, D0);
+        }
+    }
+
+    // Calculating the remaining bytes in the file
+    counter = fileSize - counter;
+
+    // Read last bytes from input file
+    file.read(fileDataChunk, counter);
+
+    // Padding source file
+    std::string padding = DataPadding_MD5(fileDataChunk, fileSize);
 
     CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
@@ -246,4 +308,6 @@ int main()
 {
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
+
+    std::cout <<  CalculateFileHash_MD5("testfile") << std::endl;
 }
