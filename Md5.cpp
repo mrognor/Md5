@@ -1,6 +1,7 @@
 #include <string>
-#include <iostream>
 #include <fstream>
+#include <cstdint>
+#include <iostream>
 
 // Array with right shifts data for all 4 rounds by 16 steps
 const int S[64] = {
@@ -129,17 +130,17 @@ inline std::string DataPadding_MD5(const std::string& str, uint64_t fileSize = 0
 }
 
 // Calculate hash to 512 bits(64 chars) and change initial numbers
-void CalculateHashStep_MD5(const std::string& str, std::uint32_t& A0, std::uint32_t& B0, std::uint32_t& C0, std::uint32_t& D0)
+void CalculateHashStep_MD5(const char* data, std::size_t dataPos, std::uint32_t& A0, std::uint32_t& B0, std::uint32_t& C0, std::uint32_t& D0)
 {
     // Convert every 4 chars to 32 bit int and save it into little endian
     std::uint32_t M[16];
-    for (int i = str.length() - 1; i > -1; i -= 4)
+    for (int i = 63; i > -1; i -= 4)
     {
         M[i/4] = 0;
-        M[i/4] |= (unsigned char)str[i] << 24;
-        M[i/4] |= (unsigned char)str[i - 1] << 16;
-        M[i/4] |= (unsigned char)str[i - 2] << 8;
-        M[i/4] |= (unsigned char)str[i - 3];
+        M[i/4] |= (unsigned char)data[dataPos + i] << 24;
+        M[i/4] |= (unsigned char)data[dataPos + i - 1] << 16;
+        M[i/4] |= (unsigned char)data[dataPos + i - 2] << 8;
+        M[i/4] |= (unsigned char)data[dataPos + i - 3];
     }
 
     // Save init uints values
@@ -227,62 +228,17 @@ std::string CalculateHash_MD5(const std::string& str)
 
     // Split source string to 512 bits(64 chars) chunks and process all of them
     for (uint64_t i = 0; i < str.length() / 64; ++i)
-        CalculateHashStep_MD5(str.substr(i*64, 64), A0, B0, C0, D0);
+        CalculateHashStep_MD5(str.c_str(), i * 64, A0, B0, C0, D0);
         
     // Padding source string
     std::string padding = DataPadding_MD5(str);
 
-    CalculateHashStep_MD5(padding.substr(0, 64), A0, B0, C0, D0);
+    CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
     if (padding.length() > 64)
-        CalculateHashStep_MD5(padding.substr(64), A0, B0, C0, D0);
+        CalculateHashStep_MD5(padding.c_str(), 64, A0, B0, C0, D0);
 
     // Return changed initial uints converted to string with hex form
-    return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
-}
-
-// Calculate file hash. File size should be less then 18446744073709551615 bytes()
-std::string CalculateFileHash_MD5(const std::string& fileName)
-{
-    // A – 01 23 45 67 in little endian order: 67452301
-    std::uint32_t A0 = 0x67452301;
-    // B - 89 AB CD EF in little endian order: EFCDAB89
-    std::uint32_t B0 = 0xefcdab89;
-    // C – FE DC BA 98 in little endian order: 98BADCFE
-    std::uint32_t C0 = 0x98badcfe;
-    // D – 76 54 32 10 in little endian order: 10325476
-    std::uint32_t D0 = 0x10325476;
-    
-    // Open file
-    std::ifstream f(fileName, std::ios_base::binary | std::ios_base::ate);
-    if (!f.is_open()) {std::cerr << "Can not open file: " << fileName << std::endl; return "";}
-
-    // Save file size
-    uint64_t fileSize = f.tellg();
-    f.seekg(0);
-
-    // Variables to store data chunks
-    char dataChunk[64];
-    std::string data;
-
-    for (uint64_t i = 0; i < fileSize / 64; ++i)
-    {
-        f.read(dataChunk, 64);
-        data = std::string(dataChunk, 64);
-        CalculateHashStep_MD5(data, A0, B0, C0, D0);
-    }
-
-    // Read last bytes in file
-    f.read(dataChunk, fileSize % 64);
-    data = std::string(dataChunk, fileSize % 64);
-
-    data = DataPadding_MD5(data, fileSize);
-
-    CalculateHashStep_MD5(data.substr(0, 64), A0, B0, C0, D0);
-
-    if (data.length() > 64)
-        CalculateHashStep_MD5(data.substr(64), A0, B0, C0, D0);
-
     return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
 }
 
@@ -290,6 +246,4 @@ int main()
 {
     std::string a = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>? And some additional text to more changes and tests";
     std::cout << CalculateHash_MD5(a) << std::endl;
-
-    std::cout << CalculateFileHash_MD5("hack_md5.cpp") << std::endl;
 }
