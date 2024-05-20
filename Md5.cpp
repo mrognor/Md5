@@ -7,7 +7,7 @@
 // Must be multiple 64
 #define CHUNK_SIZE 4096
 
-// Array with right shifts data for all 4 rounds by 16 steps
+/// \brief Array with right shifts data for all 4 rounds by 16 steps
 const int S[64] = {
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
     5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
@@ -15,7 +15,7 @@ const int S[64] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
 };
 
-// Array with const 2^32 × abs (sin(i + 1))
+/// \brief Array with const 2^32 × abs (sin(i + 1))
 const std::uint32_t K[64] = { 
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
     0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -35,28 +35,66 @@ const std::uint32_t K[64] = {
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 
 };
 
-inline std::uint32_t F(const std::uint32_t x, const std::uint32_t y, const std::uint32_t z)
+/**
+    \brief One of the internal functions of the Md5 hashing algorithm
+
+    \param [in] x One number out of the total sum of the Md5 algorithm
+    \param [in] y One number out of the total sum of the Md5 algorithm
+    \param [in] z One number out of the total sum of the Md5 algorithm
+
+    \return New number of the total sum of the Md5 algorithm
+*/
+inline std::uint32_t F(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
     return x & y | ~x & z;
 }
 
-inline std::uint32_t G(const std::uint32_t x, const std::uint32_t y, const std::uint32_t z)
+/**
+    \brief One of the internal functions of the Md5 hashing algorithm
+
+    \param [in] x One number out of the total sum of the Md5 algorithm
+    \param [in] y One number out of the total sum of the Md5 algorithm
+    \param [in] z One number out of the total sum of the Md5 algorithm
+
+    \return New number of the total sum of the Md5 algorithm
+*/
+inline std::uint32_t G(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
     return x & z | y & ~z;
 }
 
-inline std::uint32_t H(const std::uint32_t x, const std::uint32_t y, const std::uint32_t z)
+/**
+    \brief One of the internal functions of the Md5 hashing algorithm
+
+    \param [in] x One number out of the total sum of the Md5 algorithm
+    \param [in] y One number out of the total sum of the Md5 algorithm
+    \param [in] z One number out of the total sum of the Md5 algorithm
+
+    \return New number of the total sum of the Md5 algorithm
+*/
+inline std::uint32_t H(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
     return x ^ y ^ z;
 }
 
-inline std::uint32_t I(const std::uint32_t x, const std::uint32_t y, const std::uint32_t z)
+/**
+    \brief One of the internal functions of the Md5 hashing algorithm
+
+    \param [in] x One number out of the total sum of the Md5 algorithm
+    \param [in] y One number out of the total sum of the Md5 algorithm
+    \param [in] z One number out of the total sum of the Md5 algorithm
+
+    \return New number of the total sum of the Md5 algorithm
+*/
+inline std::uint32_t I(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
     return y ^ (x | ~z);
 }
 
-// Convert uint32 to string with hex form of this number
-std::string Uint32ToHexForm(std::uint32_t a)
+/// \brief Convert uint32 to string with hex form of this number
+/// \param [in] a uint32 number to convert
+/// \return hex represenation of a
+std::string Uint32ToHexForm(std::uint32_t a) noexcept
 {
     std::string res;
     
@@ -82,14 +120,16 @@ std::string Uint32ToHexForm(std::uint32_t a)
     return res;
 }
 
-// This function makes right padding to source string.
-// Its make string length equal 512 bits(64 chars) * N(unsigned int)
-// fileSize using when calculating file hash
-// Return string with 64 chars or 128 chars. Depends on last chunks in source data
-// Store last bytes from source data and append padding
-// arrayLen is length of data array
-// dataLen is length of all data
-inline std::string DataPadding_MD5(const char* data, std::size_t arrayLen, std::size_t dataLen)
+/**
+    \brief The function considers the correct padding for the data
+
+    \param [in] arr a pointer to the char array to find the padding for
+    \param [in] arrayLen the number of elements in the data arr
+    \param [in] dataLen the length of the source data
+
+    \return Returns a string with the correct padding of length 64 or 128, depending on the length of the source data
+*/
+inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen, const std::size_t& dataLen) noexcept
 {
     // String length in bytes
     std::uint64_t stringLength;
@@ -136,8 +176,19 @@ inline std::string DataPadding_MD5(const char* data, std::size_t arrayLen, std::
     return padding;
 }
 
-// Calculate hash to 512 bits(64 chars) and change initial numbers
-void CalculateHashStep_MD5(const char* data, std::size_t dataPos, std::uint32_t& A0, std::uint32_t& B0, std::uint32_t& C0, std::uint32_t& D0)
+/**
+    \brief Function for calculating the hashing step
+
+    Calculate hash to 512 bits(64 chars) and change initial numbers
+
+    \param [in] data an array with the source data
+    \param [in] dataPos The position from which 64 bytes of the hash should be calculated
+    \param [in, out] A0 One number out of the total sum of the Md5 algorithm
+    \param [in, out] B0 One number out of the total sum of the Md5 algorithm
+    \param [in, out] C0 One number out of the total sum of the Md5 algorithm
+    \param [in, out] D0 One number out of the total sum of the Md5 algorithm
+*/
+void CalculateHashStep_MD5(const char* data, const std::size_t& dataPos, std::uint32_t& A0, std::uint32_t& B0, std::uint32_t& C0, std::uint32_t& D0) noexcept
 {
     // Convert every 4 chars to 32 bit int and save it into little endian
     std::uint32_t M[16];
@@ -161,7 +212,7 @@ void CalculateHashStep_MD5(const char* data, std::size_t dataPos, std::uint32_t&
         // New value
         std::uint32_t newVal;
         int g;
-        std::uint32_t (*func)(const std::uint32_t, const std::uint32_t, const std::uint32_t) = F;
+        std::uint32_t (*func)(const std::uint32_t&, const std::uint32_t&, const std::uint32_t&) = F;
 
         // Calculate F(B, C, D) = (B and C) or (not B and D)
         if (i < 16)
@@ -221,8 +272,14 @@ void CalculateHashStep_MD5(const char* data, std::size_t dataPos, std::uint32_t&
     D0 += D; 
 }
 
-// Calculate string hash
-std::string CalculateHash_MD5(const std::string& str)
+/**
+    \brief Md5 hash function
+
+    \param [in] str the string to calculate the hash for
+    
+    \return hash of a str string in hex form
+*/
+std::string CalculateHash_MD5(const std::string& str) noexcept
 {
     // A – 01 23 45 67 in little endian order: 67452301
     std::uint32_t A0 = 0x67452301;
@@ -255,9 +312,16 @@ std::string CalculateHash_MD5(const std::string& str)
     return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
 }
 
-// Calculate file hash. File size should be less then 18446744073709551615 bytes
-// Return empty string if failed to open file
-std::string CalculateFileHash_MD5(const std::string& fileName)
+/**
+    \brief Md5 hash function for files
+    
+    File size should be less then 2305843009213693951 bytes or 2097151 TeraBytes
+
+    \param [in] fileName the name of the file to calculate the hash for
+    
+    \return hash of a fileName file in hex form. Return empty string if failed to open file
+*/
+std::string CalculateFileHash_MD5(const std::string& fileName) noexcept
 {
     // A – 01 23 45 67 in little endian order: 67452301
     std::uint32_t A0 = 0x67452301;
