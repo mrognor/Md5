@@ -46,7 +46,7 @@ const std::uint32_t K[64] = {
 */
 inline std::uint32_t F(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
-    return x & y | ~x & z;
+    return (x & y) | (~x & z);
 }
 
 /**
@@ -60,7 +60,7 @@ inline std::uint32_t F(const std::uint32_t& x, const std::uint32_t& y, const std
 */
 inline std::uint32_t G(const std::uint32_t& x, const std::uint32_t& y, const std::uint32_t& z) noexcept
 {
-    return x & z | y & ~z;
+    return (x & z) | (y & ~z);
 }
 
 /**
@@ -135,17 +135,12 @@ inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen
     std::uint64_t stringLength;
     std::string padding;
 
-    // stringLength = dataLen * 8;
     stringLength = dataLen * 8;
-
-    // for (int i = 0; i < arrayLen; ++i)
-    //     std::cout << data[i];
-    // std::cout << std::endl;
 
     padding.assign(data, arrayLen);
 
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
-    padding += (char)128;
+    padding += static_cast<char>(128);
 
     // Adding additional bits to make data length equal 512*N + 448, or in chars 64*N + 56
     // Adding eight 0 bits to data end. It's equals adding 00000000 or 0 symbol to string end
@@ -158,19 +153,19 @@ inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen
     // Pushing symbols to string. Equals 256 based count system
     while (stringLength / 256 > 0)
     {
-        stringAddition += (char)(stringLength % 256);
+        stringAddition += static_cast<char>(stringLength % 256);
         stringLength /= 256;
     } 
 
-    stringAddition += (char)(stringLength % 256);  
+    stringAddition += static_cast<char>(stringLength % 256);  
     
     // Adding string addition chars to source string in right order
     // At first we add 4 last bytes(chars). After that we add 4 first bytes(chars).
     // Also this function change bytes position to next function CalculateHastStep_MD5
-    for (int i = (stringAddition.length() - 1); i != -1; i--)
+    for (int i = static_cast<int>(stringAddition.length() - 1); i != -1; i--)
         padding += stringAddition[stringAddition.length() - 1 - i];
 
-    for (int i = 0; i < 8 - stringAddition.length(); i++)
+    for (unsigned int i = 0; i < 8 - stringAddition.length(); i++)
         padding += '\0'; 
 
     return padding;
@@ -195,10 +190,10 @@ void CalculateHashStep_MD5(const char* data, const std::size_t& dataPos, std::ui
     for (int i = 63; i > -1; i -= 4)
     {
         M[i/4] = 0;
-        M[i/4] |= (unsigned char)data[dataPos + i] << 24;
-        M[i/4] |= (unsigned char)data[dataPos + i - 1] << 16;
-        M[i/4] |= (unsigned char)data[dataPos + i - 2] << 8;
-        M[i/4] |= (unsigned char)data[dataPos + i - 3];
+        M[i/4] |= static_cast<unsigned char>(data[dataPos + i]) << 24;
+        M[i/4] |= static_cast<unsigned char>(data[dataPos + i - 1]) << 16;
+        M[i/4] |= static_cast<unsigned char>(data[dataPos + i - 2]) << 8;
+        M[i/4] |= static_cast<unsigned char>(data[dataPos + i - 3]);
     }
 
     // Save init uints values
