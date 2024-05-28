@@ -1,4 +1,5 @@
 #include <string>
+#include <vector>
 #include <fstream>
 #include <cstdint>
 #include <iostream>
@@ -98,7 +99,7 @@ std::string Uint32ToHexForm(std::uint32_t a) noexcept
 {
     std::string res;
     
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 4; ++i)
     {
         int lowByte = a % 16;
         a /= 16;
@@ -148,24 +149,24 @@ inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen
         padding += '\0';
     
     // String with source string size
-    std::string stringAddition;
+    std::vector<char> stringAddition;
 
     // Pushing symbols to string. Equals 256 based count system
     while (stringLength / 256 > 0)
     {
-        stringAddition += static_cast<char>(stringLength % 256);
+        stringAddition.emplace_back(static_cast<char>(stringLength % 256));
         stringLength /= 256;
     } 
 
-    stringAddition += static_cast<char>(stringLength % 256);  
+    stringAddition.emplace_back(static_cast<char>(stringLength % 256));
     
     // Adding string addition chars to source string in right order
     // At first we add 4 last bytes(chars). After that we add 4 first bytes(chars).
     // Also this function change bytes position to next function CalculateHastStep_MD5
-    for (int i = static_cast<int>(stringAddition.length() - 1); i != -1; i--)
-        padding += stringAddition[stringAddition.length() - 1 - i];
+    for (int i = static_cast<int>(stringAddition.size() - 1); i != -1; --i)
+        padding += stringAddition[stringAddition.size() - 1 - i];
 
-    for (unsigned int i = 0; i < 8 - stringAddition.length(); i++)
+    for (unsigned int i = 0; i < 8 - stringAddition.size(); ++i)
         padding += '\0'; 
 
     return padding;
@@ -202,7 +203,7 @@ void CalculateHashStep_MD5(const char* data, const std::size_t& dataPos, std::ui
     std::uint32_t C = C0;
     std::uint32_t D = D0;
 
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < 64; ++i)
     {       
         // New value
         std::uint32_t newVal;
