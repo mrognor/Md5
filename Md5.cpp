@@ -124,21 +124,20 @@ std::string Uint32ToHexForm(std::uint32_t a) noexcept
 /**
     \brief The function considers the correct padding for the data
 
-    \param [in] arr a pointer to the char array to find the padding for
+    \param [in] data a pointer to the char array to find the padding for
     \param [in] arrayLen the number of elements in the data arr
     \param [in] dataLen the length of the source data
 
     \return Returns a string with the correct padding of length 64 or 128, depending on the length of the source data
 */
-inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen, const std::size_t& dataLen) noexcept
+inline std::string DataPadding_MD5(const char* data, const std::size_t& dataLen, const std::size_t& sourceLen) noexcept
 {
     // String length in bytes
-    std::uint64_t stringLength;
+    std::uint64_t stringLength = sourceLen * 8;
     std::string padding;
 
-    stringLength = dataLen * 8;
-
-    padding.assign(data, arrayLen);
+    // Set known padding data
+    padding.assign(data, dataLen);
 
     // Add one 1 bit and seven 0 bits to data end. It's equals adding 10000000 or 128 symbol to string end
     padding += static_cast<char>(128);
@@ -158,6 +157,7 @@ inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen
         stringLength /= 256;
     } 
 
+    // Add last byte to stringAddition
     stringAddition.emplace_back(static_cast<char>(stringLength % 256));
     
     // Adding string addition chars to source string in right order
@@ -166,6 +166,7 @@ inline std::string DataPadding_MD5(const char* data, const std::size_t& arrayLen
     for (int i = static_cast<int>(stringAddition.size() - 1); i != -1; --i)
         padding += stringAddition[stringAddition.size() - 1 - i];
 
+    // Add zero bytes to padding    
     for (unsigned int i = 0; i < 8 - stringAddition.size(); ++i)
         padding += '\0'; 
 
@@ -290,14 +291,8 @@ std::string CalculateHash_MD5(const char* data, const std::size_t& dataLen) noex
     for (uint64_t i = 0; i < dataLen / 64; ++i)
         CalculateHashStep_MD5(data, i * 64, A0, B0, C0, D0);
 
-    // std::cout << Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0) << std::endl;
-
     // Padding source string
-    std::string padding = DataPadding_MD5(data + ((dataLen >> 6) << 6), (dataLen & 0b00111111), dataLen);
-
-    // for (auto it : padding)
-    //     std::cout << (int)(unsigned char)it << " ";
-    // std::cout << std::endl;
+    std::string padding = DataPadding_MD5(data + (dataLen & ~0b00111111), dataLen & 0b00111111, dataLen);
 
     CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
@@ -373,11 +368,7 @@ std::string CalculateFileHash_MD5(const std::string& fileName) noexcept
 
     // Padding source file
     // Move fileDataChunk ptr to last position multiply by 64
-    std::string padding = DataPadding_MD5(fileDataChunk + ((counter >> 6) << 6), counter % 64, fileSize);
-
-    // for (auto it : padding)
-    //     std::cout << (int)(unsigned char)it << " ";
-    // std::cout << std::endl;
+    std::string padding = DataPadding_MD5(fileDataChunk + (counter & ~0b00111111), counter & 0b00111111, fileSize);
 
     CalculateHashStep_MD5(padding.c_str(), 0, A0, B0, C0, D0);
 
