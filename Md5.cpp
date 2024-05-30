@@ -275,7 +275,7 @@ void CalculateHashStep_MD5(const char* data, const std::size_t& dataPos, std::ui
     
     \return hash of a str string in hex form
 */
-std::string CalculateHash_MD5(const std::string& str) noexcept
+std::string CalculateHash_MD5(const char* data, const std::size_t& dataLen) noexcept
 {
     // A – 01 23 45 67 in little endian order: 67452301
     std::uint32_t A0 = 0x67452301;
@@ -287,13 +287,13 @@ std::string CalculateHash_MD5(const std::string& str) noexcept
     std::uint32_t D0 = 0x10325476;
 
     // Split source string to 512 bits(64 chars) chunks and process all of them
-    for (uint64_t i = 0; i < str.length() / 64; ++i)
-        CalculateHashStep_MD5(str.c_str(), i * 64, A0, B0, C0, D0);
+    for (uint64_t i = 0; i < dataLen / 64; ++i)
+        CalculateHashStep_MD5(data, i * 64, A0, B0, C0, D0);
 
     // std::cout << Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0) << std::endl;
 
     // Padding source string
-    std::string padding = DataPadding_MD5(str.c_str() + ((str.length() >> 6) << 6), (str.length() & 0b00111111), str.length());
+    std::string padding = DataPadding_MD5(data + ((dataLen >> 6) << 6), (dataLen & 0b00111111), dataLen);
 
     // for (auto it : padding)
     //     std::cout << (int)(unsigned char)it << " ";
@@ -306,6 +306,11 @@ std::string CalculateHash_MD5(const std::string& str) noexcept
 
     // Return changed initial uints converted to string with hex form
     return Uint32ToHexForm(A0) + Uint32ToHexForm(B0) + Uint32ToHexForm(C0) + Uint32ToHexForm(D0);
+}
+
+std::string CalculateHash_MD5(const std::string& str) noexcept
+{
+    return CalculateHash_MD5(str.c_str(), str.length());
 }
 
 /**
